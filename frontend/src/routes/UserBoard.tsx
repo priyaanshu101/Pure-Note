@@ -18,6 +18,7 @@ import { Navbar } from './Navbar'
 
 function UserBoard() {
   const [openAddContent, setOpenAddContent] = useState(false)
+  const [shareContentType, setShareContentType] = useState("private");
   const [openShareContent, setOpenShareContent] = useState(false)
   const [contentList, setContentList] = useState([])
   const [selectedType, setSelectedType] = useState('All Content')
@@ -29,9 +30,23 @@ function UserBoard() {
       const { data } = await axios.get('http://localhost:3000/api/v1/contents', {
         headers: { Authorization: token }
       })
-      setContentList(data)
+      setContentList(data as any)
     } catch {
       alert('Error loading content')
+    }
+  }
+
+  const checkPublicPrivate = async () => {
+    try{
+      const { data } = await axios.get('http://localhost:3000/api/v1/brain/public_OR_private', {
+        headers: { Authorization: token }
+      })
+      setOpenShareContent(true);
+      if(data === "public"){
+        setShareContentType("public");
+      }
+    }catch(e){
+      alert('Error fetching Public or Private')
     }
   }
 
@@ -96,7 +111,7 @@ function UserBoard() {
             startIcon={<ShareIcon size="md" />}
             variant="primary"
             size="sm"
-            onClick={() => setOpenShareContent(true)}
+            onClick={() => checkPublicPrivate()}
             text="Share Brain"
           />
         </div>
@@ -126,8 +141,9 @@ function UserBoard() {
             }}
           />
         )}
+
         {openShareContent && (
-          <CreateShareModal open={openShareContent} onCloseShare={() => setOpenShareContent(false)} />
+          <CreateShareModal open={openShareContent} type={shareContentType} onCloseShare={() => setOpenShareContent(false)} />
         )}
       </div>
     </>

@@ -1,9 +1,10 @@
 import express from "express";
+import crypto from "crypto";
 const app = express();
 app.use(express.json());
 import jwt from "jsonwebtoken";
 //@ts-ignore
-import { UserModel, ContentModel } from "./db";
+import { UserModel, ContentModel, LinkModel } from "./db";
 import { auth } from "./auth";
 import cors from "cors";
 import bcrypt from "bcrypt";
@@ -34,17 +35,20 @@ app.post("/api/v1/signup",async(req,res) => {
 
 app.post("/api/v1/login",async(req,res) => {
     const {username , password} = req.body;
-    try{
-        const userExist = await UserModel.findOne({
+        try{
+            const user = await UserModel.findOne({
             username: username,
-            password: password
-        })
-        if(userExist){
-            const token = jwt.sign({id: userExist._id}, JWT_PASSWORD as string);
-            res.json({ token })
+        });
+        if(user){
+            const passwordMatch = await bcrypt.compare(password, user.password as string);
+            if (passwordMatch){
+                const token = jwt.sign({id: user._id}, JWT_PASSWORD as string);
+                res.json({
+                    token: token,
+                });
+            }
         }
-    }
-    catch(e){
+    }catch(e){
         res.status(403).json({message:"Incorrect Credentials"})
     }
 })
@@ -95,11 +99,82 @@ app.delete("/api/v1/deleteContent", auth, async(req,res) => {
     }
 })
 
-app.post("/api/v1/brain/share",(req,res) => {
-    
-})
+app.get("/api/v1/brain/public_OR_private", auth, async (req, res) => {
+  //@ts-ignore
+  const userId = req.userId;
 
-app.get("/api/v1/brain/:shareLink",(req,res) => {
-    
-})
+  try {
+    const link = await LinkModel.findOne({ userId });
+    if (link) {
+      res.send("public");
+    } else {
+      res.send("private");
+    }
+  } catch (e) {
+    res.status(500).send("private");
+  }
+});
+
+app.post("/api/v1/brain/share", auth, async (req, res) => {
+  //@ts-ignore
+  const userId = req.userId;
+
+  try {
+    let link = await LinkModel.findOne({ userId });
+
+    if (!link) {
+      const hash = crypto.randomBytes(5).toString("hex");
+      link = await LinkModel.create({ userId, hash });
+    }
+
+    res.json({ hash: link.hash });
+  } catch (e) {
+    res.status(500).json({ message: "Failed to share brain" });
+  }
+});
+
+app.delete("/api/v1/brain/unshare", auth, async (req, res) => {
+  //@ts-ignore
+  const userId = req.userId;
+
+  try {
+    await LinkModel.deleteOne({ userId });
+    res.json({ message: "Brain unshared successfully" });
+  } catch (e) {
+    res.status(500).json({ message: "Failed to unshare brain" });
+  }
+});
+
+app.get("/api/v1/brain/public", async (req, res) => {
+  try {
+    const allPublicLinks = await LinkModel.find();
+
+    const allContent = [];
+
+    for (const link of allPublicLinks) {
+      const contents = await ContentModel.find({ userId: link.userId });
+      allContent.push(...contents);
+    }
+
+    res.json({ contents: allContent });
+  } catch (e) {
+    res.status(500).json({ message: "Failed to fetch public content" });
+  }
+});
+
+
+// app.get("/api/v1/brain/:shareLink", async (req, res) => {
+//   const { shareLink } = req.params;
+
+//   try {
+//     const link = await LinkModel.findOne({ hash: shareLink });
+//     if (!link) return res.status(404).json({ message: "Link not found" });
+
+//     const contents = await ContentModel.find({ userId: link.userId });
+//     res.json({ contents });
+//   } catch (e) {
+//     res.status(500).json({ message: "Failed to fetch shared brain" });
+//   }
+// });
+
 app.listen(3000);

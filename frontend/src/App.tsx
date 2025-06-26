@@ -7,6 +7,7 @@ import SignUp from './routes/SignUp';
 import About from "./routes/About";
 import UserBoard from "./routes/UserBoard";
 import ForgotPassword from './routes/ForgotPassword';
+import PublicVault from './routes/PublicVault';
 
 export default function App(){
   return (
@@ -20,6 +21,7 @@ export default function App(){
           <Route path = "/signup" element = {<SignUp/>}/>
           <Route path = "/forgotPass" element = {<ForgotPassword/>}/>
           <Route path = "/userPage" element = {<UserBoard/>}/>
+          <Route path = "/public/vault" element = {<PublicVault/>}/>
         </Routes>
       </div>
     </Router>

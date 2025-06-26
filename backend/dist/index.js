@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const crypto_1 = __importDefault(require("crypto"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -45,13 +46,17 @@ app.post("/api/v1/signup", (req, res) => __awaiter(void 0, void 0, void 0, funct
 app.post("/api/v1/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password } = req.body;
     try {
-        const userExist = yield db_1.UserModel.findOne({
+        const user = yield db_1.UserModel.findOne({
             username: username,
-            password: password
         });
-        if (userExist) {
-            const token = jsonwebtoken_1.default.sign({ id: userExist._id }, JWT_PASSWORD);
-            res.json({ token });
+        if (user) {
+            const passwordMatch = yield bcrypt_1.default.compare(password, user.password);
+            if (passwordMatch) {
+                const token = jsonwebtoken_1.default.sign({ id: user._id }, JWT_PASSWORD);
+                res.json({
+                    token: token,
+                });
+            }
         }
     }
     catch (e) {
@@ -100,8 +105,71 @@ app.delete("/api/v1/deleteContent", auth_1.auth, (req, res) => __awaiter(void 0,
         res.status(500).json({ error: "Failed to delete content" });
     }
 }));
-app.post("/api/v1/brain/share", (req, res) => {
-});
-app.get("/api/v1/brain/:shareLink", (req, res) => {
-});
+app.get("/api/v1/brain/public_OR_private", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    try {
+        const link = yield db_1.LinkModel.findOne({ userId });
+        if (link) {
+            res.send("public");
+        }
+        else {
+            res.send("private");
+        }
+    }
+    catch (e) {
+        res.status(500).send("private");
+    }
+}));
+app.post("/api/v1/brain/share", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    try {
+        let link = yield db_1.LinkModel.findOne({ userId });
+        if (!link) {
+            const hash = crypto_1.default.randomBytes(5).toString("hex");
+            link = yield db_1.LinkModel.create({ userId, hash });
+        }
+        res.json({ hash: link.hash });
+    }
+    catch (e) {
+        res.status(500).json({ message: "Failed to share brain" });
+    }
+}));
+app.delete("/api/v1/brain/unshare", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    try {
+        yield db_1.LinkModel.deleteOne({ userId });
+        res.json({ message: "Brain unshared successfully" });
+    }
+    catch (e) {
+        res.status(500).json({ message: "Failed to unshare brain" });
+    }
+}));
+app.get("/api/v1/brain/public", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const allPublicLinks = yield db_1.LinkModel.find();
+        const allContent = [];
+        for (const link of allPublicLinks) {
+            const contents = yield db_1.ContentModel.find({ userId: link.userId });
+            allContent.push(...contents);
+        }
+        res.json({ contents: allContent });
+    }
+    catch (e) {
+        res.status(500).json({ message: "Failed to fetch public content" });
+    }
+}));
+// app.get("/api/v1/brain/:shareLink", async (req, res) => {
+//   const { shareLink } = req.params;
+//   try {
+//     const link = await LinkModel.findOne({ hash: shareLink });
+//     if (!link) return res.status(404).json({ message: "Link not found" });
+//     const contents = await ContentModel.find({ userId: link.userId });
+//     res.json({ contents });
+//   } catch (e) {
+//     res.status(500).json({ message: "Failed to fetch shared brain" });
+//   }
+// });
 app.listen(3000);

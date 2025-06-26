@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 import { Navbar } from "./Navbar";
 
 export default function Home() {
+  const token = localStorage.getItem("token");
+  const route = token ? "/userPage" : "/login";
   return (
     <main className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 text-primary-900 font-inter">
       <Navbar/>
@@ -22,7 +24,7 @@ export default function Home() {
       <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-700 to-primary-400">
         Second Brain
       </span>{" "}
-      Powered by AI
+      
     </h2>
 
     <p className="text-lg md:text-xl text-primary-700 mb-8 leading-relaxed">
@@ -56,7 +58,7 @@ export default function Home() {
 
     {/* CTA Button */}
     <div className="flex justify-center items-center">
-      <Link to='/signup'><Button size={"lg"} variant="primary" text={"Start Using Pure Note"}/></Link>
+      <Link to={route}><Button size={"lg"} variant="primary" text={"Start Using Pure Note"}/></Link>
     </div>
   </div>
 </section>
