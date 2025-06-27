@@ -111,14 +111,14 @@ app.get("/api/v1/brain/public_OR_private", auth_1.auth, (req, res) => __awaiter(
     try {
         const link = yield db_1.LinkModel.findOne({ userId });
         if (link) {
-            res.send("public");
+            res.json({ type: "public", hash: link.hash });
         }
         else {
-            res.send("private");
+            res.json({ type: "private", hash: "" });
         }
     }
     catch (e) {
-        res.status(500).send("private");
+        res.status(500).json({ type: "private", hash: "" });
     }
 }));
 app.post("/api/v1/brain/share", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -149,27 +149,34 @@ app.delete("/api/v1/brain/unshare", auth_1.auth, (req, res) => __awaiter(void 0,
 }));
 app.get("/api/v1/brain/public", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const allPublicLinks = yield db_1.LinkModel.find();
-        const allContent = [];
-        for (const link of allPublicLinks) {
-            const contents = yield db_1.ContentModel.find({ userId: link.userId });
-            allContent.push(...contents);
-        }
-        res.json({ contents: allContent });
+        const allPublicLinks = yield db_1.LinkModel.find({}, "userId hash brainName").lean();
+        // You may also want to get the username from the UserModel
+        const publicBrains = yield Promise.all(allPublicLinks.map((link) => __awaiter(void 0, void 0, void 0, function* () {
+            const user = yield db_1.UserModel.findById(link.userId, "username").lean();
+            return {
+                username: (user === null || user === void 0 ? void 0 : user.username) || "Unnamed",
+                hash: link.hash,
+                brainName: link.brainName,
+            };
+        })));
+        res.json(publicBrains);
     }
     catch (e) {
-        res.status(500).json({ message: "Failed to fetch public content" });
+        console.error("Public fetch failed:", e);
+        res.status(500).json({ message: "Failed to fetch public brains" });
     }
 }));
-// app.get("/api/v1/brain/:shareLink", async (req, res) => {
-//   const { shareLink } = req.params;
-//   try {
-//     const link = await LinkModel.findOne({ hash: shareLink });
-//     if (!link) return res.status(404).json({ message: "Link not found" });
-//     const contents = await ContentModel.find({ userId: link.userId });
-//     res.json({ contents });
-//   } catch (e) {
-//     res.status(500).json({ message: "Failed to fetch shared brain" });
-//   }
-// });
+app.get("/api/v1/brain/:shareLink", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const hash = req.params.shareLink.trim();
+    const link = yield db_1.LinkModel.findOne({ hash });
+    if (!link) {
+        res.status(404).json({ message: "Not found" });
+        return;
+    }
+    const content = yield db_1.ContentModel.find({ userId: link.userId }).lean();
+    const user = yield db_1.UserModel.findById(link.userId, "username").lean();
+    res.json({
+        content,
+    });
+}));
 app.listen(3000);

@@ -14,15 +14,14 @@ import { CreateShareModal } from '../components/UI/CreateShareModal'
 import { InstaIcon } from '../icons/InstaIcon'
 import { LinkIcon } from '../icons/LinkIcon'
 import { MusicIcon } from '../icons/MusicIcon'
-import { Navbar } from './Navbar'
 
 function UserBoard() {
   const [openAddContent, setOpenAddContent] = useState(false)
-  const [shareContentType, setShareContentType] = useState("private");
+  const [shareContentType, setShareContentType] = useState("")
   const [openShareContent, setOpenShareContent] = useState(false)
   const [contentList, setContentList] = useState([])
   const [selectedType, setSelectedType] = useState('All Content')
-
+  const [shareContentHash, setShareContentHash] = useState("")
   const token = localStorage.getItem('token')
 
   const fetchContent = async () => {
@@ -30,22 +29,21 @@ function UserBoard() {
       const { data } = await axios.get('http://localhost:3000/api/v1/contents', {
         headers: { Authorization: token }
       })
-      setContentList(data as any)
+      setContentList(data)
     } catch {
       alert('Error loading content')
     }
   }
 
   const checkPublicPrivate = async () => {
-    try{
+    try {
       const { data } = await axios.get('http://localhost:3000/api/v1/brain/public_OR_private', {
         headers: { Authorization: token }
       })
-      setOpenShareContent(true);
-      if(data === "public"){
-        setShareContentType("public");
-      }
-    }catch(e){
+      setOpenShareContent(true)
+      setShareContentType(data.type)
+      setShareContentHash(data.hash)
+    } catch (e) {
       alert('Error fetching Public or Private')
     }
   }
@@ -143,11 +141,17 @@ function UserBoard() {
         )}
 
         {openShareContent && (
-          <CreateShareModal open={openShareContent} type={shareContentType} onCloseShare={() => setOpenShareContent(false)} />
+          <CreateShareModal
+            open={openShareContent}
+            type={shareContentType}
+            onCloseShare={() => setOpenShareContent(false)}
+            onUpdateType={(newType) => setShareContentType(newType)}
+            existingHash={shareContentHash}
+          />
         )}
       </div>
     </>
   )
 }
 
-export default UserBoard;
+export default UserBoard

@@ -8,6 +8,7 @@ import About from "./routes/About";
 import UserBoard from "./routes/UserBoard";
 import ForgotPassword from './routes/ForgotPassword';
 import PublicVault from './routes/PublicVault';
+import PublicBoard from './routes/PublicBoard';
 
 export default function App(){
   return (
@@ -22,6 +23,7 @@ export default function App(){
           <Route path = "/forgotPass" element = {<ForgotPassword/>}/>
           <Route path = "/userPage" element = {<UserBoard/>}/>
           <Route path = "/public/vault" element = {<PublicVault/>}/>
+          <Route path="/brain/:hash" element={<PublicBoard />} />
         </Routes>
       </div>
     </Router>

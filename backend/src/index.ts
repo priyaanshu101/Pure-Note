@@ -105,15 +105,17 @@ app.get("/api/v1/brain/public_OR_private", auth, async (req, res) => {
 
   try {
     const link = await LinkModel.findOne({ userId });
+
     if (link) {
-      res.send("public");
+      res.json({ type: "public", hash: link.hash });
     } else {
-      res.send("private");
+      res.json({ type: "private", hash: "" });
     }
   } catch (e) {
-    res.status(500).send("private");
+    res.status(500).json({ type: "private", hash: "" });
   }
 });
+
 
 app.post("/api/v1/brain/share", auth, async (req, res) => {
   //@ts-ignore
@@ -147,34 +149,28 @@ app.delete("/api/v1/brain/unshare", auth, async (req, res) => {
 
 app.get("/api/v1/brain/public", async (req, res) => {
   try {
-    const allPublicLinks = await LinkModel.find();
-
-    const allContent = [];
-
-    for (const link of allPublicLinks) {
-      const contents = await ContentModel.find({ userId: link.userId });
-      allContent.push(...contents);
-    }
-
-    res.json({ contents: allContent });
+    const allPublicLinks = await LinkModel.find().lean();
+    res.json(allPublicLinks);
   } catch (e) {
-    res.status(500).json({ message: "Failed to fetch public content" });
+    console.error("Public fetch failed:", e);
+    res.status(500).json({ message: "Failed to fetch public brains" });
   }
 });
 
 
-// app.get("/api/v1/brain/:shareLink", async (req, res) => {
-//   const { shareLink } = req.params;
+app.get("/api/v1/brain/:shareLink", async (req, res) => {
+  const hash = req.params.shareLink.trim();
+  const link = await LinkModel.findOne({ hash });
+  if (!link) {
+    res.status(404).json({ message: "Not found" });
+    return;
+  }
+  const content = await ContentModel.find({ userId: link.userId }).lean();
+  const user = await UserModel.findById(link.userId, "username").lean();
 
-//   try {
-//     const link = await LinkModel.findOne({ hash: shareLink });
-//     if (!link) return res.status(404).json({ message: "Link not found" });
-
-//     const contents = await ContentModel.find({ userId: link.userId });
-//     res.json({ contents });
-//   } catch (e) {
-//     res.status(500).json({ message: "Failed to fetch shared brain" });
-//   }
-// });
+  res.json({
+    content,
+  });
+});
 
 app.listen(3000);
