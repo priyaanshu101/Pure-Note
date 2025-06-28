@@ -28,7 +28,7 @@ export default function Home() {
     </h2>
 
     <p className="text-lg md:text-xl text-primary-700 mb-8 leading-relaxed">
-      Collect links, notes, and knowledge from everywhere. Let AI organize,
+      Collect links, notes, and knowledge from everywhere. Let Us organize,
       connect, and retrieve them when you need.
     </p>
 

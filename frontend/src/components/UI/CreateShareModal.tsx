@@ -33,6 +33,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
           headers: { Authorization: token }
         }
       )
+      console.log(data.hash);
       const shareURL = `http://localhost:3000/brain/${data.hash}`
       setUrl(shareURL)
       setBrainType("public")

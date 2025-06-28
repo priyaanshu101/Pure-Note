@@ -11,8 +11,6 @@ interface CardProps {
   onClickDelete?: () => void;
 }
 
-const CardHeaderStyle = "flex items-center justify-between gap-3 pb-4";
-
 export const Card = (props: CardProps) => {
   const getYoutubeEmbedUrl = (url: string) => {
     try {
@@ -50,10 +48,17 @@ export const Card = (props: CardProps) => {
   }, [props.type, props.link]);
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md border-slate-200 max-w-80 border font-semibold hover:bg-primary-200 shadow-lg hover:scale-105 transition-all duration-300 ease-out will-change-transform px-4 py-2 rounded-xl">
-      <div className={`${CardHeaderStyle}`}>
-        {props.startIcon} {props.title}
-        <div className="flex gap-2">
+    <div className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 ease-out will-change-transform overflow-hidden w-full max-w-sm mx-auto">
+      {/* Card Header */}
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {props.startIcon}
+          <span className="font-semibold text-gray-800 truncate">
+            {props.title}
+          </span>
+        </div>
+        
+        <div className="flex gap-2 flex-shrink-0">
           <RedirectIcon size="md" />
           {props.onClickDelete && (
             <div className="hover:bg-red">
@@ -63,18 +68,22 @@ export const Card = (props: CardProps) => {
         </div>
       </div>
 
+      {/* Card Content */}
       {props.type === "Youtube" && (
-        <iframe
-          className="w-full rounded-lg mt-4"
-          src={getYoutubeEmbedUrl(props.link)}
-          allowFullScreen
-          title={props.title}
-        ></iframe>
+        <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100 mt-4">
+          <iframe
+            className="w-full h-full"
+            src={getYoutubeEmbedUrl(props.link)}
+            allowFullScreen
+            title={props.title}
+            loading="lazy"
+          />
+        </div>
       )}
 
       {props.type === "Twitter" && (
-        <blockquote className="twitter-tweet" data-width="100%">
-          <a href={`${props.link}`}></a>
+        <blockquote className="twitter-tweet mt-4" data-width="100%">
+          <a href={props.link}></a>
         </blockquote>
       )}
 
@@ -91,7 +100,7 @@ export const Card = (props: CardProps) => {
               width: "100%",
               maxWidth: "100%",
             }}
-          ></blockquote>
+          />
         </div>
       )}
     </div>

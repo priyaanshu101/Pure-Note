@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 
@@ -14,14 +14,40 @@ import { Sidebar } from "../components/UI/Sidebar";
 function PublicBoard() {
   const { hash } = useParams();
   const location = useLocation();
+
   const [contentList, setContentList] = useState([]);
   const [brainName, setBrainName] = useState(location.state?.brainName || "Anonymous");
   const [selectedType, setSelectedType] = useState("All Content");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Prevent double-fetch in dev caused by React.StrictMode
+  const hasFetched = useRef(false);
+
+  // Check if screen is mobile size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-hide sidebar on mobile
+      if (mobile && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+      // Auto-show sidebar on desktop if it was hidden due to mobile
+      if (!mobile && !sidebarOpen) {
+        setSidebarOpen(true);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   const fetchPublicContent = async () => {
     try {
       const { data } = await axios.get(`http://localhost:3000/api/v1/brain/${hash}`);
-      setContentList(data.content);
+      setContentList(data.content || []);
       if (data.brainName?.trim()) {
         setBrainName(data.brainName.trim());
       }
@@ -31,11 +57,18 @@ function PublicBoard() {
   };
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "development" && hasFetched.current) return;
+
     fetchPublicContent();
+    hasFetched.current = true;
   }, [hash]);
 
   const handleSidebarSelect = (title) => {
     setSelectedType(title);
+    // Close sidebar on mobile after selection
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   };
 
   const filteredContent =
@@ -63,29 +96,102 @@ function PublicBoard() {
   };
 
   return (
-    <>
-      <Sidebar specificContent={handleSidebarSelect} />
-      <div className="ml-60 pl-10 bg-[#faf7fe] min-h-screen pb-20 px-6 text-center relative z-10 bg-[linear-gradient(to_right,_#9ca3af,_#f1f2f4,_#9ca3af)]">
-        <h2 className="text-4xl font-extrabold text-center pt-20 pb-10 text-primary-900">
-          {brainName}
-        </h2>
+    <div className="min-h-screen bg-gradient-to-r from-gray-400 via-gray-100 to-gray-400 flex">
+      {/* Sidebar */}
+      <Sidebar
+        specificContent={handleSidebarSelect}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        isMobile={isMobile}
+      />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
-          {filteredContent.map(
-            (item) =>
-              item.link && (
-                <Card
-                  key={item._id}
-                  startIcon={getIcon(item.type)}
-                  title={item.title}
-                  type={item.type}
-                  link={item.link}
-                />
-              )
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main content */}
+      <div className={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${
+        !sidebarOpen ? "ml-0" : ""
+      }`}>
+        
+        {/* Menu button - shows when sidebar is hidden */}
+        {!sidebarOpen && (
+          <button
+            className="fixed top-4 left-4 z-50 bg-white p-2 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between p-4 sm:p-6 pt-16 sm:pt-6">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-800">
+              {brainName}
+            </h1>
+            <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm">
+              {filteredContent.length} items
+            </span>
+          </div>
+          
+          {/* Public vault indicator */}
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-2 rounded-full shadow-sm flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Public Vault
+          </div>
+        </div>
+
+        {/* Filter type display */}
+        {selectedType !== "All Content" && (
+          <div className="px-4 sm:px-6 pb-2">
+            <div className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm inline-block">
+              Showing: {selectedType}
+            </div>
+          </div>
+        )}
+
+        {/* Content grid */}
+        <div className="px-4 sm:px-6 pb-6">
+          {filteredContent.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-500 text-lg mb-2">No content found</div>
+              <div className="text-gray-400 text-sm">
+                {selectedType === "All Content"
+                  ? "This public vault is empty or content is not available."
+                  : `No ${selectedType.toLowerCase()} content found in this vault.`}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+              {filteredContent.map(
+                (item) =>
+                  item.link && (
+                    <Card
+                      key={item._id.toString()}
+                      startIcon={getIcon(item.type)}
+                      title={item.title}
+                      type={item.type}
+                      link={item.link}
+                      // No delete functionality for public board
+                      isPublic={true}
+                    />
+                  )
+              )}
+            </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
