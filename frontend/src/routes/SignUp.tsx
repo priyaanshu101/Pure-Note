@@ -11,19 +11,17 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [usernameStatus, setUsernameStatus] = useState(""); // "", "available", "taken", "error"
+  const [usernameStatus, setUsernameStatus] = useState("");
   const [emailStatus, setEmailStatus] = useState("");
 
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-
   const [errors, setErrors] = useState({});
 
   const navigate = useNavigate();
 
-  // Helper to clear a specific field's error on input change
   function clearError(field) {
     setErrors((prev) => {
       const copy = { ...prev };
@@ -32,21 +30,12 @@ export default function SignUp() {
     });
   }
 
-  // Helper for simple username format validation (same as in your Zod)
-  const isUsernameValid = (name) => {
-    // Adjust this to match your Zod username regex if needed
-    return /^[a-zA-Z0-9_]{3,30}$/.test(name);
-  };
+  const isUsernameValid = (name) => /^[a-zA-Z0-9_]{3,30}$/.test(name);
+  const isEmailValid = (mail) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail);
 
-  // Helper for email format validation (simple regex)
-  const isEmailValid = (mail) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail);
-  };
-
-  // Username availability check only if username is valid and non-empty
   useEffect(() => {
     if (!username || !isUsernameValid(username)) {
-      setUsernameStatus(""); // Hide availability message if invalid or empty
+      setUsernameStatus("");
       return;
     }
 
@@ -56,7 +45,7 @@ export default function SignUp() {
           `http://localhost:3000/api/v1/check-username?username=${username}`
         );
         setUsernameStatus(res.data.available ? "available" : "taken");
-      } catch (e) {
+      } catch {
         setUsernameStatus("error");
       }
     }, 500);
@@ -64,10 +53,9 @@ export default function SignUp() {
     return () => clearTimeout(timer);
   }, [username]);
 
-  // Email availability check only if email is valid and non-empty
   useEffect(() => {
     if (!email || !isEmailValid(email)) {
-      setEmailStatus(""); // Hide availability if invalid or empty
+      setEmailStatus("");
       return;
     }
 
@@ -77,7 +65,7 @@ export default function SignUp() {
           `http://localhost:3000/api/v1/check-email?email=${email}`
         );
         setEmailStatus(res.data.available ? "available" : "taken");
-      } catch (e) {
+      } catch {
         setEmailStatus("error");
       }
     }, 500);
@@ -97,26 +85,30 @@ export default function SignUp() {
     }
 
     setErrors({});
-
+    
     try {
       const response = await axios.post("http://localhost:3000/api/v1/signup", {
         username,
         email,
         password,
       });
-      setUsername("");
-      setEmail("");
-      setPassword("");
-      setUsernameStatus("");
-      setEmailStatus("");
-      setUsernameFocused(false);
-      setEmailFocused(false);
-      if (response.status === 200) {
-        navigate("/login");
-        alert("You are Signed In");
-      }
-    } catch (e) {
-      alert("Cannot Signup");
+
+      // Navigate to OTP page with props
+      navigate("/otp", {
+        state: {
+          email: email,
+          purpose: "signup",
+          heading: "Verify Your Email",
+          description: "Please enter the verification code sent to your email to complete your registration.",
+          successMessage: "Email verified successfully! Welcome aboard!",
+          redirectTo: "/login"
+        }
+      });
+
+    } catch (err) {
+      console.error("Signup failed:", err);
+      const errorMessage = err?.response?.data?.message || "Cannot signup. Please try again.";
+      alert(errorMessage);
     }
   }
 
@@ -128,6 +120,7 @@ export default function SignUp() {
           <h4 className="md:text-5xl font-extrabold leading-tight mb-6">Sign Up</h4>
 
           <div className="flex flex-col relative max-w-xl mx-auto mb-6 gap-5">
+            {/* Username Input */}
             <div className="relative">
               <input
                 type="text"
@@ -155,6 +148,7 @@ export default function SignUp() {
               )}
             </div>
 
+            {/* Email Input */}
             <div className="relative">
               <input
                 type="text"
@@ -182,6 +176,7 @@ export default function SignUp() {
               )}
             </div>
 
+            {/* Password Input */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}

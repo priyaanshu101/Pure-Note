@@ -9,6 +9,7 @@ import UserBoard from "./routes/UserBoard";
 import ForgotPassword from './routes/ForgotPassword';
 import PublicVault from './routes/PublicVault';
 import PublicBoard from './routes/PublicBoard';
+import OtpPage from './components/UI/OTP';
 
 export default function App(){
   return (
@@ -23,7 +24,8 @@ export default function App(){
           <Route path = "/forgotPass" element = {<ForgotPassword/>}/>
           <Route path = "/userPage" element = {<UserBoard/>}/>
           <Route path = "/public/vault" element = {<PublicVault/>}/>
-          <Route path="/brain/:hash" element={<PublicBoard />} />
+          <Route path = "/brain/:hash" element={<PublicBoard />} />
+          <Route path = "/otp" element={<OtpPage />} />
         </Routes>
       </div>
     </Router>

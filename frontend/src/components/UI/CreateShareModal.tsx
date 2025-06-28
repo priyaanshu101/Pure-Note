@@ -14,7 +14,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
 
   useEffect(() => {
     if (type === "public" && existingHash) {
-      setUrl(`http://localhost:3000/brain/${existingHash}`)
+      setUrl(`http://localhost:5173/brain/${existingHash}`)
     }
     setBrainType(type)
   }, []) 
@@ -34,7 +34,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
         }
       )
       console.log(data.hash);
-      const shareURL = `http://localhost:3000/brain/${data.hash}`
+      const shareURL = `http://localhost:5173/brain/${data.hash}`
       setUrl(shareURL)
       setBrainType("public")
       setCopiedIcon(false)
