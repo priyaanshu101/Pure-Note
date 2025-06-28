@@ -7,8 +7,9 @@ const mongodbURL= process.env.mongodbURL;
 mongoose.connect(mongodbURL as string);
 console.log("listen: 3000");
 const UserSchema = new Schema({
-    username: {type: String, unique: true},
-    password: String
+    username: {type: String, unique: true, required: true},
+    email: {type: String, unique: true, required: true},
+    password: {type: String, required: true}
 })
 export const UserModel = model("User", UserSchema);
 

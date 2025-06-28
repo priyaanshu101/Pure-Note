@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../components/UI/Button";
 import { AppLogo } from "../icons/AppLogo";
 import { Layout } from "./Layout";
@@ -9,11 +9,21 @@ import { Link } from "react-router-dom";
 import { Navbar } from "./Navbar";
 
 export default function Home() {
-  const token = localStorage.getItem("token");
+  const [token, setToken] = useState("");
   const route = token ? "/userPage" : "/login";
+
+  useEffect(() => {
+    setToken(localStorage.getItem('token'));
+  },[]);
+
+  function handleLogOut(){
+    localStorage.removeItem('token');
+    setToken("");
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 text-primary-900 font-inter">
-      <Navbar/>
+      <Navbar render={handleLogOut} />
 
       {/* Hero Section */}
 <section className="pt-32 pb-20 px-6 text-center relative z-10 bg-[linear-gradient(to_right,_#9ca3af,_#f1f2f4,_#9ca3af)]">

@@ -28,11 +28,12 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const JWT_PASSWORD = process.env.JWT_PASSWORD;
 app.post("/api/v1/signup", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
     const hashedPassword = yield bcrypt_1.default.hash(password, 5);
     try {
         yield db_1.UserModel.create({
             username: username,
+            email: email,
             password: hashedPassword
         });
         res.json({
@@ -44,23 +45,26 @@ app.post("/api/v1/signup", (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 }));
 app.post("/api/v1/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password } = req.body;
+    const { credential, password } = req.body;
     try {
         const user = yield db_1.UserModel.findOne({
-            username: username,
+            $or: [{ username: credential }, { email: credential }],
         });
-        if (user) {
-            const passwordMatch = yield bcrypt_1.default.compare(password, user.password);
-            if (passwordMatch) {
-                const token = jsonwebtoken_1.default.sign({ id: user._id }, JWT_PASSWORD);
-                res.json({
-                    token: token,
-                });
-            }
+        if (!user)
+            return res.status(403).json({ message: "User do not exist" });
+        const passwordMatch = yield bcrypt_1.default.compare(password, user.password);
+        if (passwordMatch) {
+            const token = jsonwebtoken_1.default.sign({ id: user._id }, JWT_PASSWORD);
+            res.json({
+                token: token,
+            });
+        }
+        else {
+            res.status(403).json({ message: "Wrong Password" });
         }
     }
     catch (e) {
-        res.status(403).json({ message: "Incorrect Credentials" });
+        res.status(500).json({ message: "server" });
     }
 }));
 app.post("/api/v1/content", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -124,11 +128,12 @@ app.get("/api/v1/brain/public_OR_private", auth_1.auth, (req, res) => __awaiter(
 app.post("/api/v1/brain/share", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
+    const brainName = req.body.brainName;
     try {
         let link = yield db_1.LinkModel.findOne({ userId });
         if (!link) {
             const hash = crypto_1.default.randomBytes(5).toString("hex");
-            link = yield db_1.LinkModel.create({ userId, hash });
+            link = yield db_1.LinkModel.create({ userId, hash, brainName });
         }
         res.json({ hash: link.hash });
     }
@@ -149,17 +154,8 @@ app.delete("/api/v1/brain/unshare", auth_1.auth, (req, res) => __awaiter(void 0,
 }));
 app.get("/api/v1/brain/public", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const allPublicLinks = yield db_1.LinkModel.find({}, "userId hash brainName").lean();
-        // You may also want to get the username from the UserModel
-        const publicBrains = yield Promise.all(allPublicLinks.map((link) => __awaiter(void 0, void 0, void 0, function* () {
-            const user = yield db_1.UserModel.findById(link.userId, "username").lean();
-            return {
-                username: (user === null || user === void 0 ? void 0 : user.username) || "Unnamed",
-                hash: link.hash,
-                brainName: link.brainName,
-            };
-        })));
-        res.json(publicBrains);
+        const allPublicLinks = yield db_1.LinkModel.find().lean();
+        res.json(allPublicLinks);
     }
     catch (e) {
         console.error("Public fetch failed:", e);
@@ -174,7 +170,6 @@ app.get("/api/v1/brain/:shareLink", (req, res) => __awaiter(void 0, void 0, void
         return;
     }
     const content = yield db_1.ContentModel.find({ userId: link.userId }).lean();
-    const user = yield db_1.UserModel.findById(link.userId, "username").lean();
     res.json({
         content,
     });

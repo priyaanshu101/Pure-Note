@@ -1,4 +1,5 @@
 import express from "express";
+import { Request, Response } from 'express';
 import crypto from "crypto";
 const app = express();
 app.use(express.json());
@@ -17,11 +18,12 @@ const JWT_PASSWORD = process.env.JWT_PASSWORD;
 
 app.post("/api/v1/signup",async(req,res) => {
     
-    const {username , password} = req.body;
+    const {username ,email, password} = req.body;
     const hashedPassword = await bcrypt.hash(password, 5);
     try{
         await UserModel.create({
             username: username,
+            email: email,
             password: hashedPassword
         })
         res.json({
@@ -33,25 +35,30 @@ app.post("/api/v1/signup",async(req,res) => {
     }
 })
 
-app.post("/api/v1/login",async(req,res) => {
-    const {username , password} = req.body;
-        try{
-            const user = await UserModel.findOne({
-            username: username,
+app.post("/api/v1/login", async (req: any, res: any) => {
+    const { credential, password } = req.body;
+    
+    try {
+        const user = await UserModel.findOne({
+            $or: [{ username: credential }, { email: credential }],
         });
-        if(user){
-            const passwordMatch = await bcrypt.compare(password, user.password as string);
-            if (passwordMatch){
-                const token = jwt.sign({id: user._id}, JWT_PASSWORD as string);
-                res.json({
-                    token: token,
-                });
-            }
+        
+        if (!user) return res.status(403).json({ message: "User do not exist" });
+        
+        const passwordMatch = await bcrypt.compare(password, user.password as string);
+        
+        if (passwordMatch) {
+            const token = jwt.sign({ id: user._id }, JWT_PASSWORD as string);
+            res.json({
+                token: token,
+            });
+        } else {
+            res.status(403).json({ message: "Wrong Password" });
         }
-    }catch(e){
-        res.status(403).json({message:"Incorrect Credentials"})
+    } catch (e) {
+        res.status(500).json({ message: "server" });
     }
-})
+});
 
 app.post("/api/v1/content", auth, async(req,res) => {
     //@ts-ignore
@@ -120,13 +127,13 @@ app.get("/api/v1/brain/public_OR_private", auth, async (req, res) => {
 app.post("/api/v1/brain/share", auth, async (req, res) => {
   //@ts-ignore
   const userId = req.userId;
-
+  const brainName = req.body.brainName
   try {
     let link = await LinkModel.findOne({ userId });
 
     if (!link) {
       const hash = crypto.randomBytes(5).toString("hex");
-      link = await LinkModel.create({ userId, hash });
+      link = await LinkModel.create({ userId, hash, brainName });
     }
 
     res.json({ hash: link.hash });
@@ -166,8 +173,6 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
     return;
   }
   const content = await ContentModel.find({ userId: link.userId }).lean();
-  const user = await UserModel.findById(link.userId, "username").lean();
-
   res.json({
     content,
   });

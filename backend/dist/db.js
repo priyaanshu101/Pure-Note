@@ -44,8 +44,9 @@ const mongodbURL = process.env.mongodbURL;
 mongoose_1.default.connect(mongodbURL);
 console.log("listen: 3000");
 const UserSchema = new mongoose_1.Schema({
-    username: { type: String, unique: true },
-    password: String
+    username: { type: String, unique: true, required: true },
+    email: { type: String, unique: true, required: true },
+    password: { type: String, required: true }
 });
 exports.UserModel = (0, mongoose_1.model)("User", UserSchema);
 const ContentSchema = new mongoose_1.Schema({
