@@ -10,7 +10,6 @@ const UserSchema = new Schema({
     username: {type: String, unique: true, required: true},
     email: {type: String, unique: true, required: true},
     password: {type: String, required: true},
-    isVerified: { type: Boolean, default: false }
 })
 export const UserModel = model("User", UserSchema);
 
@@ -31,13 +30,14 @@ const LinkSchema = new Schema({
 export const LinkModel = model("Links", LinkSchema);
 
 const emailVerificationSchema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  email:{ type: String, required: true},
   otp: { type: String, required: true },
-  purpose: { type: String, enum: ['signup', 'reset'], required: true },
-  expiresAt: { type: Date, required: true, expires: 0 },
+  purpose: { type: String, enum: ['signup', 'forgot-password'], required: true },
+  expiresAt: { type: Date, required: true },
 }, 
 { timestamps: true,}
 );
-export const EmailVerificationModel = model("EmailVerification", emailVerificationSchema);
+emailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+export const EmailVerificationModel = model("EmailVerification", emailVerificationSchema);
 

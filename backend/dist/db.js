@@ -47,7 +47,6 @@ const UserSchema = new mongoose_1.Schema({
     username: { type: String, unique: true, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    isVerified: { type: Boolean, default: false }
 });
 exports.UserModel = (0, mongoose_1.model)("User", UserSchema);
 const ContentSchema = new mongoose_1.Schema({
@@ -65,9 +64,10 @@ const LinkSchema = new mongoose_1.Schema({
 });
 exports.LinkModel = (0, mongoose_1.model)("Links", LinkSchema);
 const emailVerificationSchema = new mongoose_1.Schema({
-    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
+    email: { type: String, required: true },
     otp: { type: String, required: true },
-    purpose: { type: String, enum: ['signup', 'reset'], required: true },
-    expiresAt: { type: Date, required: true, expires: 0 },
+    purpose: { type: String, enum: ['signup', 'forgot-password'], required: true },
+    expiresAt: { type: Date, required: true },
 }, { timestamps: true, });
+emailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 exports.EmailVerificationModel = (0, mongoose_1.model)("EmailVerification", emailVerificationSchema);

@@ -38,116 +38,144 @@ app.get("/api/v1/check-email", async (req, res) => {
 });
 import { sendOTPEmail, generateOtp } from "./email-service"; // Import the functions
 
-app.post("/api/v1/signup", async (req, res) => {
-    const { username, email, password } = req.body;
-    
-    const hashedPassword = await bcrypt.hash(password, 10); // Use 10 rounds instead of 5 for better security
-    
-    try {
-        // Create user first
-        const user = await UserModel.create({
-            username: username,
-            email: email,
-            password: hashedPassword,
-            isVerified: false
-        });
-        
-        // Generate OTP and set expiration
-        const otp = generateOtp();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-        
-        // Save OTP verification record
-        await EmailVerificationModel.create({
-            userId: user._id, // Now user._id exists because we created the user above
-            otp,
-            purpose: 'signup',
-            expiresAt,
-        });
-        
-        // Send OTP email
-        await sendOTPEmail(email, otp, 'signup');
-        res.status(200).json({
-            message: "OTP-verify"
-        });
-        
-    } catch (e: any) {
-        console.error("Signup error:", e);
-        res.status(500).json({ message: "Internal server error" });
-    }
+
+app.post("/api/v1/send-otp", async (req:any, res:any) => {
+  const { email, purpose } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+  try {
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await sendOTPEmail(email, otp, "signup");
+    await EmailVerificationModel.create({
+      email,
+      otp,
+      purpose: purpose,
+      expiresAt
+    });
+    res.status(200).json({message:"OTP send successfully"});
+  } catch (err) {
+    console.error("Send signup OTP error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
-app.post("/api/v1/verify-signup-otp", async (req, res) => {
-  const { email, otp } = req.body;
-
+app.post("/api/v1/verify-otp", async (req:any, res:any) => {
+  const { email, otp, purpose } = req.body;
   if (!email || !otp) {
-    res.status(400).json({ message: "Email and OTP are required" });
-    return;
+    return res.status(400).json({ message: "Email and OTP are required" });
   }
 
   try {
-    const user = await UserModel.findOne({ email });
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    if (user.isVerified) {
-      res.status(400).json({ message: "User already verified" });
-      return;
-    }
-
     const verification = await EmailVerificationModel.findOne({
-      userId: user._id,
+      email,
       otp,
-      purpose: 'signup',
+      purpose: purpose,
     });
 
     if (!verification) {
-      res.status(400).json({ message: "Invalid or expired OTP" });
-      return;
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    user.isVerified = true;
-    await user.save();
+    if (verification.expiresAt < new Date()) {
+      await EmailVerificationModel.deleteOne({ _id: verification._id });
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
     await EmailVerificationModel.deleteOne({ _id: verification._id });
 
-    res.json({ message: "Email verified successfully"});
+    return res.json({ message: "successfully" });
   } catch (err) {
-    console.error("Verify signup OTP error:", err);
-    res.status(500).json({ message: "Internal Server Error" });
+    console.error("Verify OTP error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-app.post("/api/v1/resend-signup-otp", async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    res.status(400).json({ message: "Email is required" });
-    return;
+app.post("/api/v1/signup", async (req:any, res:any) => {
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    const user = await UserModel.findOne({ email });
-    if (!user || user.isVerified) {
-      res.status(404).json({ message: "User not found or already verified" });
-      return;
+    const existingUser = await UserModel.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email or username already exists" });
     }
-    const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    await EmailVerificationModel.findOneAndUpdate(
-      { userId: user._id, purpose: 'signup' },
-      { otp, expiresAt },
-      { upsert: true, new: true }
-    );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await sendOTPEmail(email, otp, 'signup');
+    await UserModel.create({
+      username,
+      email,
+      password: hashedPassword,
+    });
 
-    res.json({ message: "Verification code resent" });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ message: "Internal Server Error" });
+    return res.status(200).json({ message: "User created. Proceed to OTP verification." });
+  } catch (err) {
+    console.error("Signup error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+
+app.post("/api/v1/forgot-password", async (req: any, res: any) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and new password are required" });
+  }
+
+  try {
+    const user = await UserModel.findOne({email:email});
+    console.log(user?.username);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log(hashedPassword);
+    await user.save();
+
+    return res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// app.post("/api/v1/resend-signup-otp", async (req, res) => {
+//   const { email } = req.body;
+//   if (!email) {
+//     res.status(400).json({ message: "Email is required" });
+//     return;
+//   }
+
+//   try {
+//     const user = await UserModel.findOne({ email });
+//     if (!user || user.isVerified) {
+//       res.status(404).json({ message: "User not found or already verified" });
+//       return;
+//     }
+//     const otp = generateOtp();
+//     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+//     await EmailVerificationModel.findOneAndUpdate(
+//       { userId: user._id, purpose: 'signup' },
+//       { otp, expiresAt },
+//       { upsert: true, new: true }
+//     );
+
+//     await sendOTPEmail(email, otp, 'signup');
+
+//     res.json({ message: "Verification code resent" });
+//   } catch (e) {
+//     console.error(e);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
 
 
 
@@ -164,7 +192,6 @@ app.post("/api/v1/login", async (req: any, res: any) => {
         });
         
         if (!user) return res.status(403).json({ message: "User do not exist" });
-        if (!user.isVerified) return res.status(403).json({ message: "User is not verified" });
         const passwordMatch = await bcrypt.compare(password, user.password as string);
         
         if (passwordMatch) {
