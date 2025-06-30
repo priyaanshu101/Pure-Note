@@ -58,7 +58,7 @@ const UserSchema = new mongoose_1.Schema({
     password: { type: String, required: true },
 });
 exports.UserModel = (0, mongoose_1.model)("User", UserSchema);
-const embedding_1 = require("./embedding"); // update path if needed
+const embedding_1 = require("./embedding");
 const ContentSchema = new mongoose_1.Schema({
     title: String,
     link: String,

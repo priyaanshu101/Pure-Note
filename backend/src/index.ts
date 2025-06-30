@@ -332,13 +332,6 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
 
 import { loadEmbeddingModel, getEmbedding } from './embedding';
 
-(async () => {
-  await loadEmbeddingModel();
-  app.listen(3000, () => {
-    console.log('Server started on port 3000');
-  });
-})();
-
 app.get('/api/v1/search', async (req, res) => {
   try {
     const searchTerm = (req.query.q as string) || '';
@@ -346,7 +339,7 @@ app.get('/api/v1/search', async (req, res) => {
 
     const embedding = await getEmbedding(searchTerm);
 
-    // Step 1: Vector results
+    // Step 1: Vector search results (returns full content records)
     const vectorResults = await ContentModel.aggregate([
       {
         $search: {
@@ -363,12 +356,16 @@ app.get('/api/v1/search', async (req, res) => {
           _id: 1,
           title: 1,
           description: 1,
+          type: 1,
+          link: 1,
+          userId: 1,
+          tags: 1,
           score: { $meta: "searchScore" }
         }
       }
     ]);
 
-    // Step 2: Regex match for title and description
+    // Step 2: Regex match for title and description (fallback)
     const regexResults = await ContentModel.find({
       $or: [
         { title: { $regex: searchTerm, $options: "i" } },
@@ -377,20 +374,36 @@ app.get('/api/v1/search', async (req, res) => {
     })
     .limit(20);
 
-    // Step 3: Merge and remove duplicates by _id
+    // Step 3: Merge and remove duplicates by _id, prioritize vector results
     const map = new Map();
-    [...regexResults, ...vectorResults].forEach(item => {
+    
+    // Add regex results first (lower priority)
+    regexResults.forEach(item => {
+      map.set(item._id.toString(), { ...item.toObject(), score: 0.5 });
+    });
+    
+    // Add vector results (higher priority, will overwrite regex results)
+    vectorResults.forEach(item => {
       map.set(item._id.toString(), item);
     });
 
-    const finalResults = Array.from(map.values()).slice(0, limit);
+    const finalResults = Array.from(map.values())
+      .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
+      .slice(0, limit);
+    
     res.json(finalResults);
-
+   
   } catch (err) {
     console.error("Search error:", err);
     res.status(500).json({ error: "Search failed" });
   }
 });
 
+(async () => {
+  await loadEmbeddingModel();
+  app.listen(3000, () => {
+    console.log('Server started on port 3000');
+  });
+})();
 
 app.listen(3000);
