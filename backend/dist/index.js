@@ -191,13 +191,15 @@ app.post("/api/v1/login", (req, res) => __awaiter(void 0, void 0, void 0, functi
 app.post("/api/v1/content", auth_1.auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
+    const title = req.body.title;
     const link = req.body.link;
     const type = req.body.type;
-    const title = req.body.title;
+    const description = req.body.description;
     yield db_1.ContentModel.create({
         link,
         title,
         type,
+        description,
         userId,
         tag: []
     });
@@ -295,4 +297,125 @@ app.get("/api/v1/brain/:shareLink", (req, res) => __awaiter(void 0, void 0, void
         content,
     });
 }));
+const HF_TOKEN = process.env.HF_TOKEN;
+// const MODEL_ID = 'sentence-transformers/multi-qa-mpnet-base-dot-v1';
+// import { loadEmbeddingModel, getEmbedding } from './embedding';
+// (async () => {
+//   await loadEmbeddingModel();
+//   app.listen(3000, () => {
+//     console.log('Server started on port 3000');
+//   });
+// })();
+// app.get('/api/v1/search', async (req, res) => {
+//   try {
+//     const searchTerm = (req.query.q as string) || '';
+//     const limit = Number(req.query.limit) || 10;
+//     const embedding = await getEmbedding(searchTerm);
+//     // Step 1: Vector results
+//     const vectorResults = await ContentModel.aggregate([
+//       {
+//         $search: {
+//           index: "default",
+//           knnBeta: {
+//             vector: embedding,
+//             path: "embedding",
+//             k: 3
+//           }
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           title: 1,
+//           description: 1,
+//           score: { $meta: "searchScore" }
+//         }
+//       }
+//     ]);
+//     // Step 2: Regex match for title and description
+//     const regexResults = await ContentModel.find({
+//       $or: [
+//         { title: { $regex: searchTerm, $options: "i" } },
+//         { description: { $regex: searchTerm, $options: "i" } }
+//       ]
+//     })
+//     .limit(20);
+//     // Step 3: Merge and remove duplicates by _id
+//     const map = new Map();
+//     [...regexResults, ...vectorResults].forEach(item => {
+//       map.set(item._id.toString(), item);
+//     });
+//     const finalResults = Array.from(map.values()).slice(0, limit);
+//     res.json(finalResults);
+//   } catch (err) {
+//     console.error("Search error:", err);
+//     res.status(500).json({ error: "Search failed" });
+//   }
+// });
+const embedding_1 = require("./embedding");
+app.get('/api/v1/search', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const searchTerm = req.query.q || '';
+        const limit = Number(req.query.limit) || 10;
+        const embedding = yield (0, embedding_1.getEmbedding)(searchTerm);
+        // Step 1: Vector search results (returns full content records)
+        const vectorResults = yield db_1.ContentModel.aggregate([
+            {
+                $search: {
+                    index: "default",
+                    knnBeta: {
+                        vector: embedding,
+                        path: "embedding",
+                        k: 3
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    type: 1,
+                    link: 1,
+                    userId: 1,
+                    tags: 1,
+                    score: { $meta: "searchScore" }
+                }
+            }
+        ]);
+        // Step 2: Regex match for title and description (fallback)
+        const regexResults = yield db_1.ContentModel.find({
+            $or: [
+                { title: { $regex: searchTerm, $options: "i" } },
+                { description: { $regex: searchTerm, $options: "i" } }
+            ]
+        })
+            .limit(20);
+        // Step 3: Merge and remove duplicates by _id, prioritize vector results
+        const map = new Map();
+        // Add regex results first (lower priority)
+        regexResults.forEach(item => {
+            map.set(item._id.toString(), Object.assign(Object.assign({}, item.toObject()), { score: 0.5 }));
+        });
+        // Add vector results (higher priority, will overwrite regex results)
+        vectorResults.forEach(item => {
+            map.set(item._id.toString(), item);
+        });
+        const finalResults = Array.from(map.values())
+            .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
+            .slice(0, limit);
+        res.json(finalResults);
+    }
+    catch (err) {
+        console.error("Search error:", err);
+        res.status(500).json({ error: "Search failed" });
+    }
+}));
+(() => __awaiter(void 0, void 0, void 0, function* () {
+    yield (0, embedding_1.loadEmbeddingModel)();
+    app.listen(3000, () => {
+        console.log('Server started on port 3000');
+    });
+}))();
+// Remove the duplicate app.listen(3000) line
 app.listen(3000);

@@ -210,13 +210,16 @@ app.post("/api/v1/login", async (req: any, res: any) => {
 app.post("/api/v1/content", auth, async(req,res) => {
     //@ts-ignore
     const userId = req.userId;
-    const link = req.body.link;
-    const type = req.body.type;
+    
     const title = req.body.title;
+    const link = req.body.link;
+     const type = req.body.type;
+    const description = req.body.description;
     await ContentModel.create({
         link,
         title,
         type,
+        description,
         userId,
         tag:[]
     })
@@ -324,5 +327,70 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
     content,
   });
 });
+
+
+
+import { loadEmbeddingModel, getEmbedding } from './embedding';
+
+(async () => {
+  await loadEmbeddingModel();
+  app.listen(3000, () => {
+    console.log('Server started on port 3000');
+  });
+})();
+
+app.get('/api/v1/search', async (req, res) => {
+  try {
+    const searchTerm = (req.query.q as string) || '';
+    const limit = Number(req.query.limit) || 10;
+
+    const embedding = await getEmbedding(searchTerm);
+
+    // Step 1: Vector results
+    const vectorResults = await ContentModel.aggregate([
+      {
+        $search: {
+          index: "default",
+          knnBeta: {
+            vector: embedding,
+            path: "embedding",
+            k: 3
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          description: 1,
+          score: { $meta: "searchScore" }
+        }
+      }
+    ]);
+
+    // Step 2: Regex match for title and description
+    const regexResults = await ContentModel.find({
+      $or: [
+        { title: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } }
+      ]
+    })
+    .limit(20);
+
+    // Step 3: Merge and remove duplicates by _id
+    const map = new Map();
+    [...regexResults, ...vectorResults].forEach(item => {
+      map.set(item._id.toString(), item);
+    });
+
+    const finalResults = Array.from(map.values()).slice(0, limit);
+    res.json(finalResults);
+
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ error: "Search failed" });
+  }
+});
+
 
 app.listen(3000);

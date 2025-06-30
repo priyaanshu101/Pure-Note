@@ -32,6 +32,15 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -49,12 +58,31 @@ const UserSchema = new mongoose_1.Schema({
     password: { type: String, required: true },
 });
 exports.UserModel = (0, mongoose_1.model)("User", UserSchema);
+const embedding_1 = require("./embedding"); // update path if needed
 const ContentSchema = new mongoose_1.Schema({
     title: String,
     link: String,
     tags: [{ type: mongoose_1.default.Types.ObjectId, ref: 'Tag' }],
     type: String,
+    description: String,
     userId: { type: mongoose_1.default.Types.ObjectId, ref: 'User', required: true },
+    embedding: { type: [Number] }
+});
+ContentSchema.pre('save', function (next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const text = `${this.title} ${this.description}`;
+        try {
+            const vector = yield (0, embedding_1.getEmbedding)(text);
+            // @ts-ignore
+            this.embedding = vector;
+        }
+        catch (err) {
+            console.error('Embedding failed:', err);
+            //@ts-ignore
+            return next(err);
+        }
+        next();
+    });
 });
 exports.ContentModel = (0, mongoose_1.model)("Content", ContentSchema);
 const LinkSchema = new mongoose_1.Schema({
