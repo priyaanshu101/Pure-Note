@@ -16,6 +16,10 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 app.use(cors());
 
+app.get("/", (_req, res) => {
+  res.send("Hello from Backend");
+})
+
 app.get("/api/v1/check-username", async (req, res) => {
     const { username } = req.query;
     
