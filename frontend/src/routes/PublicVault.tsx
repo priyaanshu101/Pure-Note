@@ -19,6 +19,8 @@ export default function PublicVault() {
     }
   };
 
+  
+
   useEffect(() => {
     fetchPublicBrains();
   }, []);
@@ -30,7 +32,6 @@ export default function PublicVault() {
   return (
     <div>
       <Navbar />
-
       <div className="min-h-screen pt-36 pb-20 px-6 text-center bg-[linear-gradient(to_right,_#9ca3af,_#f1f2f4,_#9ca3af)]">
         <h2 className="text-4xl font-extrabold mb-10 text-primary-900">Public Vault</h2>
 

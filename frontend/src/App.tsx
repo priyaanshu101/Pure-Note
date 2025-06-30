@@ -12,13 +12,15 @@ import PublicBoard from './routes/PublicBoard';
 import OtpPage from './components/UI/OTP';
 import ResetPassword from './routes/ResetPassword';
 
+import { SearchComponent } from './components/UI/SearchComponent.tsx';
+
 export default function App(){
   return (
   <Router>
       <div className='App'>
         <Routes>
+          {/* <Route path = "/searchcomponent" element = {<SearchComponent/>}/> */}
           <Route path = "/" element = {<Home/>}/>
-          <Route path = "/about" element = {<About/>}/>
           <Route path = "/contact" element = {<Contact/>}/>
           <Route path = "/login" element = {<Login/>}/>
           <Route path = "/signup" element = {<SignUp/>}/>
