@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 import { Navbar } from "./Navbar";
+import { API_BASE } from "../config/config";
 
 export default function Login() {
   const [credential, setCredential] = useState("");
@@ -10,7 +11,7 @@ export default function Login() {
 
   async function handleClick() {
     try {
-      const response = await axios.post("http://localhost:3000/api/v1/login", {
+      const response = await axios.post<any>(`${API_BASE}/login`, {
         credential,
         password,
       });
@@ -20,7 +21,7 @@ export default function Login() {
       setCredential("");
       setPassword("");
       navigate("/userPage");
-    } catch (error) {
+    } catch (error:any) {
       if (error.response) {
         // Backend returned an error response
         const errorMessage = error.response.data.message;

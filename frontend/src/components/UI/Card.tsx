@@ -1,10 +1,16 @@
 import { useEffect } from "react";
-import type { ReactElement } from "react";
+// import type { ReactElement } from "react";
 import { DeleteIcon } from "../../icons/DeleteIcon";
 import { RedirectIcon } from "../../icons/Redirect";
 
+declare global {
+  interface Window {
+    instgrm?: any; 
+  }
+}
+
 interface CardProps {
-  startIcon: ReactElement;
+  startIcon: any;
   title: string;
   type: "Youtube" | "Twitter" | "Instagram" | "Notes" | "Link" | "Music";
   link: string;

@@ -2,8 +2,14 @@ import { useState } from "react";
 import { CrossIcon } from "../../icons/CrossIcon";
 import { Button } from "./Button";
 import axios from "axios";
+import { API_BASE } from "../../config/config";
 
-export function CreateContentModal({ open, onClose }) {
+interface CreateContentModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function CreateContentModal({ open, onClose }: CreateContentModalProps) {
   const token = localStorage.getItem("token");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
@@ -35,7 +41,7 @@ export function CreateContentModal({ open, onClose }) {
 
     try {
       const added = await axios.post(
-        "http://localhost:3000/api/v1/content",
+        `${API_BASE}/content`,
         { title, link, type, description },
         { headers: { Authorization: token } }
       );
@@ -62,12 +68,12 @@ export function CreateContentModal({ open, onClose }) {
               <Input
                 placeholder="Title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e:any) => setTitle(e.target.value)}
               />
               <Input
                 placeholder="Link"
                 value={link}
-                onChange={(e) => setLink(e.target.value)}
+                onChange={(e:any) => setLink(e.target.value)}
               />
             <select
                 className={`px-4 pt-2 border rounded m-2 pb-2 ${
@@ -113,7 +119,12 @@ export function CreateContentModal({ open, onClose }) {
   );
 }
 
-function Input({ value, onChange, placeholder }) {
+interface InputProps{
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>)=>void;
+  placeholder:string;
+}
+function Input({ value, onChange, placeholder }:InputProps) {
   return (
     <div>
       <input

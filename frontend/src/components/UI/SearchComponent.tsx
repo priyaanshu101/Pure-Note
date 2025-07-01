@@ -1,59 +1,6 @@
-// import React, { useState, useCallback } from 'react';
-// import debounce from 'lodash/debounce';
-
-// interface SearchResult {
-//   title: string;
-//   description: string;
-//   score: number;
-// }
-
-// export const SearchComponent: React.FC = () => {
-//   const [query, setQuery] = useState('');
-//   const [results, setResults] = useState<SearchResult[]>([]);
-
-//   // Debounced function to call the backend
-//   const fetchResults = useCallback(debounce(async (q: string) => {
-//     if (!q) {
-//       setResults([]);
-//       return;
-//     }
-//     try {
-//       const resp = await fetch(`http://localhost:3000/api/v1/search?q=${encodeURIComponent(q)}`);
-//       const data: SearchResult[] = await resp.json();
-//       setResults(data);
-//     } catch (err) {
-//       console.error(err);
-//     }
-//   }, 300), []);
-
-//   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const value = e.target.value;
-//     setQuery(value);
-//     fetchResults(value);
-//   };
-
-//   return (
-//     <div>
-//       <input
-//         type="text"
-//         placeholder="Type to search..."
-//         value={query}
-//         onChange={handleChange}
-//       />
-//       <ul>
-//         {results.map((item, idx) => (
-//           <li key={idx}>
-//             <h3>{item.title}</h3>
-//             <p>{item.description}</p>
-//           </li>
-//         ))}
-//       </ul>
-//     </div>
-//   );
-// };
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import debounce from 'lodash/debounce';
+import { API_BASE } from '../../config/config';
 
 interface SearchResult {
   _id: string;
@@ -104,7 +51,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
     setIsSearching(true);
     try {
       const resp = await fetch(
-        `http://localhost:3000/api/v1/search?q=${encodeURIComponent(q)}`,
+        `${API_BASE}/search?q=${encodeURIComponent(q)}`,
         {
           headers: { 
             Authorization: token || '' 

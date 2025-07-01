@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../components/UI/Button";
-import { AppLogo } from "../icons/AppLogo";
+// import { AppLogo } from "../icons/AppLogo";
 import { Layout } from "./Layout";
 import { CaptureIcon } from "../icons/CaptureIcon";
 import { SearchIcon } from "../icons/SearchIcon";
@@ -13,12 +13,14 @@ export default function Home() {
   const route = token ? "/userPage" : "/login";
 
   useEffect(() => {
-    setToken(localStorage.getItem('token'));
-  },[]);
+    setToken(localStorage.getItem('token') ?? "");
+  }, []);
+
 
   function handleLogOut(){
     localStorage.removeItem('token');
     setToken("");
+    return <div>You have been logged out</div>;
   }
 
   return (
@@ -84,9 +86,9 @@ export default function Home() {
           </p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <Layout icon={<CaptureIcon/>} title={"Quick Capture"} text={"Save web pages, notes, and thoughts with smart tagging"}/>
-          <Layout icon={<SearchIcon/>} title={"Smart Search"} text={"Find your content instantly with AI-powered search"}/>
-          <Layout icon={<ConnectedIcon/>} title={"Connected"} text={"Discover connections between your saved content"}/>
+          <Layout icon={<CaptureIcon/>} title={"Quick Capture"} text={"Save web pages, notes, and thoughts with smart tagging"} onClick={()=>{}}/>
+          <Layout icon={<SearchIcon/>} title={"Smart Search"} text={"Find your content instantly with AI-powered search"} onClick={()=>{}}/>
+          <Layout icon={<ConnectedIcon/>} title={"Connected"} text={"Discover connections between your saved content"} onClick={()=>{}}/>
         </div>
       </section>
 

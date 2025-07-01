@@ -37,7 +37,7 @@ export function Sidebar({ specificContent, sidebarOpen, setSidebarOpen, isMobile
         <div className="flex-1">
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <AppLogo size="lg" />
+              <AppLogo/>
               <Link to="/" className="flex-shrink-0">
                 <div className="text-xl font-semibold text-gray-800 whitespace-nowrap">Pure Note</div>
               </Link>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Button } from "./Button";
+import { API_BASE } from "../../config/config";
 
 interface OtpPageState {
   username: string;
@@ -42,7 +43,7 @@ export default function OtpPage() {
 
   const sendOtp = async () => {
     try {
-      await axios.post("http://localhost:3000/api/v1/send-otp", {
+      await axios.post(`${API_BASE}/send-otp`, {
         email: state.email,
         purpose: state.purpose,
       });
@@ -63,14 +64,14 @@ export default function OtpPage() {
     setIsSubmitting(true);
 
     try {
-      await axios.post("http://localhost:3000/api/v1/verify-otp", {
+      await axios.post(`${API_BASE}/verify-otp`, {
         otp: fullOtp,
         email: state.email,
         purpose: state.purpose,
       });
 
       if (state.purpose === "signup") {
-        await axios.post("http://localhost:3000/api/v1/signup", {
+        await axios.post(`${API_BASE}/signup`, {
           username: state.username,
           email: state.email,
           password: state.password,
@@ -82,6 +83,7 @@ export default function OtpPage() {
       }
     } catch (err) {
       console.error("OTP verification failed:", err);
+      //@ts-ignore
       alert(err?.response?.data?.message || "Invalid or expired OTP.");
       setOtp(new Array(6).fill(""));
       inputRefs.current[0]?.focus();
@@ -122,6 +124,7 @@ export default function OtpPage() {
                     inputRefs.current[index - 1]?.focus();
                   }
                 }}
+                //@ts-ignore
                 ref={(el) => (inputRefs.current[index] = el)}
                 className="w-12 h-12 text-center text-xl border border-gray-400 rounded-lg focus:ring-2 focus:ring-primary-500"
                 disabled={isSubmitting}
@@ -133,6 +136,7 @@ export default function OtpPage() {
             variant="primary"
             text={isSubmitting ? "Verifying..." : "Submit OTP"}
             onClick={submitOtp}
+            //@ts-ignore
             disabled={isSubmitting || otp.some((d) => !d)}
           />
         </div>

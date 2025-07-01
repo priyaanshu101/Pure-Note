@@ -4,6 +4,7 @@ import { Navbar } from "./Navbar";
 import { Validation } from "../validation/Validation";
 
 import axios from "axios";
+import { API_BASE } from "../config/config";
 
 export default function ResetPassword() {
   const location = useLocation();
@@ -31,7 +32,7 @@ export default function ResetPassword() {
     }
 
     try {
-      await axios.post("http://localhost:3000/api/v1/forgot-password", {
+      await axios.post(`${API_BASE}/forgot-password`, {
         email,
         password,
       });

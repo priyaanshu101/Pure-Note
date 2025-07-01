@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Validation } from "../validation/Validation";
 import { EyeIcon } from "../icons/EyeIcon";
 import { EyeHideIcon } from "../icons/EyeHideIcon";
+import { API_BASE } from "../config/config";
 
 export default function SignUp() {
   const [username, setUsername] = useState("");
@@ -16,11 +17,11 @@ export default function SignUp() {
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const navigate = useNavigate();
 
-  function clearError(field) {
+  function clearError(field:string) {
     setErrors((prev) => {
       const copy = { ...prev };
       delete copy[field];
@@ -28,8 +29,8 @@ export default function SignUp() {
     });
   }
 
-  const isUsernameValid = (name) => /^[a-zA-Z0-9_]{3,30}$/.test(name);
-  const isEmailValid = (mail) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail);
+  const isUsernameValid = (name:string): boolean => /^[a-zA-Z0-9_]{3,30}$/.test(name);
+  const isEmailValid = (mail:string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail);
 
   useEffect(() => {
     if (!username || !isUsernameValid(username)) {
@@ -38,7 +39,7 @@ export default function SignUp() {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await axios.get(`http://localhost:3000/api/v1/check-username?username=${username}`);
+        const res = await axios.get<any>(`${API_BASE}/check-username?username=${username}`);
         setUsernameStatus(res.data.available ? "available" : "taken");
       } catch {
         setUsernameStatus("error");
@@ -54,7 +55,7 @@ export default function SignUp() {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await axios.get(`http://localhost:3000/api/v1/check-email?email=${email}`);
+        const res = await axios.get<any>(`${API_BASE}/check-email?email=${email}`);
         setEmailStatus(res.data.available ? "available" : "taken");
       } catch {
         setEmailStatus("error");
@@ -66,7 +67,7 @@ export default function SignUp() {
   async function handleClick() {
     const result = Validation.safeParse({ username, email, password });
     if (!result.success) {
-      const fieldErrors = {};
+      const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach(({ path, message }) => {
         fieldErrors[path[0]] = message;
       });
@@ -153,7 +154,7 @@ export default function SignUp() {
                 className="absolute top-4 right-4 cursor-pointer text-gray-600"
                 onClick={() => setShowPassword((prev) => !prev)}
               >
-                {showPassword ? <EyeHideIcon /> : <EyeIcon />}
+                {showPassword ? <EyeHideIcon size="md"/> : <EyeIcon size="md"/>}
               </span>
               {errors.password && <p className="text-red-600 text-sm">{errors.password}</p>}
             </div>

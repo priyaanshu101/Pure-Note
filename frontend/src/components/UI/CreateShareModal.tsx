@@ -4,12 +4,22 @@ import { CrossIcon } from "../../icons/CrossIcon"
 import { Button } from "./Button"
 import { CopyIcon } from "../../icons/CopyIcon"
 import { CopiedIcon } from "../../icons/CopiedIcon"
+import { API_BASE } from "../../config/config"
 
-export function CreateShareModal({ open, type, onCloseShare, onUpdateType, existingHash }) {
+interface CreateShareModalProps {
+  open: boolean;
+  type: 'public' | 'private';
+  onCloseShare: () => void;
+  onUpdateType: (newMode: "public" | "private") => void;
+  existingHash?: string;
+}
+
+
+export function CreateShareModal({ open, type, onCloseShare, onUpdateType, existingHash }: CreateShareModalProps) {
   const token = localStorage.getItem("token")
   const [url, setUrl] = useState("None")
   const [copiedIcon, setCopiedIcon] = useState(false)
-  const [brainType, setBrainType] = useState(type)
+  const [brainType, setBrainType] = useState(type);
   const [brainName, setBrainName] = useState("")
 
   useEffect(() => {
@@ -17,7 +27,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
       setUrl(`http://localhost:5173/brain/${existingHash}`)
     }
     setBrainType(type)
-  }, []) 
+  }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url)
@@ -27,13 +37,13 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
   const shareBrain = async () => {
     try {
       const { data } = await axios.post(
-        "http://localhost:3000/api/v1/brain/share",
+        `${API_BASE}/brain/share`,
         { brainName },
         {
           headers: { Authorization: token }
         }
       )
-      console.log(data.hash);
+      //@ts-ignore
       const shareURL = `http://localhost:5173/brain/${data.hash}`
       setUrl(shareURL)
       setBrainType("public")
@@ -46,7 +56,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
 
   const unShareBrain = async () => {
     try {
-      await axios.delete("http://localhost:3000/api/v1/brain/unshare", {
+      await axios.delete(`${API_BASE}/brain/unshare`, {
         headers: { Authorization: token }
       })
       setBrainType("private")

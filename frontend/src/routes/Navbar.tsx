@@ -1,10 +1,14 @@
 import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../components/UI/Button"
 import { AppLogo } from "../icons/AppLogo"
-import { useEffect, useState } from "react";
-import { nav } from "framer-motion/client";
+import { type ReactElement } from "react";
+// import { nav } from "framer-motion/client";
 
-export function Navbar({render}) {
+interface NavbarProps {
+  render?: () => ReactElement;
+}
+
+export function Navbar({ render }: NavbarProps): ReactElement {
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
 
@@ -32,7 +36,8 @@ export function Navbar({render}) {
           }
           {token && <div
             onClick={() => {
-              render();
+              localStorage.removeItem("token");
+              render?.();
             }}
             className="text-primary-600 hover:text-primary-900 transition hover:cursor-pointer" 
             >Log Out</div>}

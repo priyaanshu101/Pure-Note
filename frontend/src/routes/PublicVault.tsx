@@ -2,16 +2,25 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import axios from "axios";
+import { API_BASE } from "../config/config";
+
+interface PublicBrain {
+    userId: string;
+    brainName: string;
+    hash:string;
+  }
 
 export default function PublicVault() {
-  const [users, setUsers] = useState([]);
+  //@ts-ignore
+  const [render, reRender] = useState(false);
+  const [users, setUsers] = useState<PublicBrain[]>([]);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   // Fetch all public brains on page load
   const fetchPublicBrains = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3000/api/v1/brain/public");
+      const { data } = await axios.get<PublicBrain[]>(`${API_BASE}/brain/public`);
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -28,10 +37,15 @@ export default function PublicVault() {
   if (error) {
     return <div className="text-red-600 text-center mt-24">{error}</div>;
   }
+  function handleLogOut(){
+    localStorage.removeItem('token');
+    reRender(true);
+    return <div>You have been logged out</div>;
+  }
 
   return (
     <div>
-      <Navbar />
+      <Navbar render={handleLogOut} />
       <div className="min-h-screen pt-36 pb-20 px-6 text-center bg-[linear-gradient(to_right,_#9ca3af,_#f1f2f4,_#9ca3af)]">
         <h2 className="text-4xl font-extrabold mb-10 text-primary-900">Public Vault</h2>
 
