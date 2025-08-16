@@ -1,6 +1,7 @@
 import express from "express";
 const app = express();
 import dotenv from "dotenv";
+import {ObjectId} from "mongodb";
 dotenv.config();
 const JWT_PASSWORD = process.env.JWT_PASSWORD;
 
@@ -335,25 +336,53 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
 
 
 import { loadEmbeddingModel, getEmbedding } from './embedding';
-
+//@ts-ignore
 app.get('/api/v1/search', async (req, res) => {
   try {
     const searchTerm = (req.query.q as string) || '';
+    const hash = (req.query.hash as string) || '';
     const limit = Number(req.query.limit) || 10;
+    let targetUserId: string = '';
 
+    // Determine the target user id based on hash parameter or authentication
+    if (hash && hash.trim() !== '') {
+      // If a hash is provided, fetch the corresponding user id from LinkModel
+      const link = await LinkModel.findOne({ hash });
+      if (!link) {
+        return res.status(404).json({ message: 'Hash not found' });
+      }
+      targetUserId = link.userId.toString();
+    } else {
+      console.log("No hash provided, using authentication");
+      // No hash provided, require authentication
+      const header = req.headers['authorization'];
+      if (!header) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const decoded = jwt.verify(header as string, JWT_PASSWORD as string);
+      targetUserId = (decoded as jwt.JwtPayload).id || '';
+      if (targetUserId === '') {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    }
+
+    // Get embedding for the search term
     const embedding = await getEmbedding(searchTerm);
 
-    // Step 1: Vector search results (returns full content records)
+    // Perform vector search with filtering based on targetUserId
     const vectorResults = await ContentModel.aggregate([
       {
         $search: {
-          index: "default",
+          index: 'default',
           knnBeta: {
             vector: embedding,
-            path: "embedding",
+            path: 'embedding',
             k: 3
           }
         }
+      },
+      {
+        $match: { userId: new ObjectId(targetUserId) }
       },
       {
         $project: {
@@ -364,42 +393,36 @@ app.get('/api/v1/search', async (req, res) => {
           link: 1,
           userId: 1,
           tags: 1,
-          score: { $meta: "searchScore" }
+          score: { $meta: 'searchScore' }
         }
       }
     ]);
 
-    // Step 2: Regex match for title and description (fallback)
+    // Perform regex search with filtering based on targetUserId
     const regexResults = await ContentModel.find({
+      userId: new ObjectId(targetUserId),
       $or: [
-        { title: { $regex: searchTerm, $options: "i" } },
-        { description: { $regex: searchTerm, $options: "i" } }
+        { title: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } }
       ]
-    })
-    .limit(20);
+    }).limit(20);
 
-    // Step 3: Merge and remove duplicates by _id, prioritize vector results
+    // Merge results, prioritizing vector results
     const map = new Map();
-    
-    // Add regex results first (lower priority)
     regexResults.forEach(item => {
       map.set(item._id.toString(), { ...item.toObject(), score: 0.5 });
     });
-    
-    // Add vector results (higher priority, will overwrite regex results)
     vectorResults.forEach(item => {
       map.set(item._id.toString(), item);
     });
-
     const finalResults = Array.from(map.values())
-      .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
       .slice(0, limit);
-    
+
     res.json(finalResults);
-   
   } catch (err) {
-    console.error("Search error:", err);
-    res.status(500).json({ error: "Search failed" });
+    console.error('Search error:', err);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 

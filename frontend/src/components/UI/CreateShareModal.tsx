@@ -5,6 +5,7 @@ import { Button } from "./Button"
 import { CopyIcon } from "../../icons/CopyIcon"
 import { CopiedIcon } from "../../icons/CopiedIcon"
 import { API_BASE } from "../../config/config"
+import { SHARE_URL } from "../../config/config"
 
 interface CreateShareModalProps {
   open: boolean;
@@ -24,7 +25,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
 
   useEffect(() => {
     if (type === "public" && existingHash) {
-      setUrl(`http://localhost:5173/brain/${existingHash}`)
+      setUrl(`${SHARE_URL}/brain/${existingHash}`)
     }
     setBrainType(type)
   }, [])
@@ -44,7 +45,7 @@ export function CreateShareModal({ open, type, onCloseShare, onUpdateType, exist
         }
       )
       //@ts-ignore
-      const shareURL = `http://localhost:5173/brain/${data.hash}`
+      const shareURL = `${SHARE_URL}/brain/${data.hash}`
       setUrl(shareURL)
       setBrainType("public")
       setCopiedIcon(false)

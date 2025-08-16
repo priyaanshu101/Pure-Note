@@ -14,11 +14,13 @@ interface SearchResult {
 interface SearchComponentProps {
   onSearchResults: (results: SearchResult[]) => void;
   onClearSearch: () => void;
+  hash?: string;
 }
 
 export const SearchComponent: React.FC<SearchComponentProps> = ({ 
   onSearchResults, 
-  onClearSearch 
+  onClearSearch,
+  hash = ''
 }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -50,8 +52,14 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
 
     setIsSearching(true);
     try {
+      let queryUrl;
+      if (hash && hash.trim() !== '') {
+        queryUrl = `${API_BASE}/search?q=${encodeURIComponent(q)}&hash=${hash}&limit=10`;
+      } else {
+        queryUrl = `${API_BASE}/search?q=${encodeURIComponent(q)}&limit=10`;
+      }
       const resp = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(q)}`,
+        queryUrl,
         {
           headers: { 
             Authorization: token || '' 

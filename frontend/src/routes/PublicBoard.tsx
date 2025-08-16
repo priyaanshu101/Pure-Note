@@ -12,6 +12,7 @@ import { LinkIcon } from "../icons/LinkIcon";
 import { MusicIcon } from "../icons/MusicIcon";
 import { Sidebar } from "../components/UI/Sidebar";
 import { API_BASE } from "../config/config";
+import AISearchBar from "../components/UI/AIsearch";
 
 function PublicBoard() {
   const { hash } = useParams();
@@ -178,7 +179,11 @@ function PublicBoard() {
               <SearchComponent
                 onSearchResults={handleSearchResults}
                 onClearSearch={handleClearSearch}
+                hash={hash}
               />
+              <div className='flex items-center gap-3 flex-shrink-0'>
+                <AISearchBar hash={hash}/>
+              </div>
           {/* Public vault indicator */}
           <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-2 rounded-full shadow-sm flex-shrink-0">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

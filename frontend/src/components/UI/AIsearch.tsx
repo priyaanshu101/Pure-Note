@@ -8,16 +8,21 @@ interface SearchResult {
   title: string;
   description: string;
   type?: string;
+  hash?: string;
 }
 
-const AISearchBar = () => {
+interface AISearchBarProps {
+  hash?: string;
+}
+
+const AISearchBar: React.FC<AISearchBarProps> = ({ hash }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [aiResponse, setAiResponse] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
-  
+  const token = localStorage.getItem('token');
   // Default API key (you should replace this with your own default key)
   const DEFAULT_API_KEY = import.meta.env.VITE_GEMINI_APIKEY;
   
@@ -39,7 +44,21 @@ const AISearchBar = () => {
     setShowResults(true);
 
     try {
-      const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&limit=3`);
+      let queryUrl;
+      if (hash && hash.trim() !== '') {
+        queryUrl = `${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&hash=${hash}&limit=10`;
+      } else {
+        queryUrl = `${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&limit=10`;
+      }
+      const response = await fetch(
+        queryUrl,
+        {
+          headers: { 
+            Authorization: token || '' 
+          }
+        }
+      );
+      // const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&limit=3`);
       const results = await response.json();
       
       if (response.ok) {
